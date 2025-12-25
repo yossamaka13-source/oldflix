@@ -1,30 +1,30 @@
 /*global navigate*/
 import css from './ui.css';
 
-let videoElement = null;
-let playerControls = null;
-let progressBar = null;
-let progressFilled = null;
-let hideControlsTimeout = null;
+var videoElement = null;
+var playerControls = null;
+var progressBar = null;
+var progressFilled = null;
+var hideControlsTimeout = null;
 
 /**
  * Initialize UI enhancements when DOM is loaded
  */
 function initializeUI() {
   // Add CSS to head
-  const style = document.createElement('style');
+  var style = document.createElement('style');
   style.textContent = css;
   document.head.appendChild(style);
-  
+
   // Enable navigation mode
   document.body.classList.add('tflix-navigation-mode');
-  
+
   // Initialize focus on a logical starting element
   initializeFocus();
-  
+
   // Setup event listeners for media control keys
   setupMediaControlListeners();
-  
+
   // Initialize video player enhancements when a video is played
   setupVideoPlayerObserver();
 }
@@ -34,25 +34,31 @@ function initializeUI() {
  */
 function initializeFocus() {
   // Start by focusing on the first navigable element (like a menu item or featured content)
-  const initialElements = [
+  var initialElements = [
     // Main navigation elements
     document.querySelector('nav a'),
     document.querySelector('.navigation a'),
     document.querySelector('header a'),
-    
+
     // Content cards/items
     document.querySelector('.movie-card'),
     document.querySelector('.content-item'),
     document.querySelector('.film-item'),
-    
+
     // Fallback to any clickable element
     document.querySelector('a'),
     document.querySelector('button')
   ];
-  
+
   // Find the first valid element from our priority list
-  const firstElement = initialElements.find(el => el !== null);
-  
+  var firstElement = null;
+  for (var i = 0; i < initialElements.length; i++) {
+    if (initialElements[i] !== null) {
+      firstElement = initialElements[i];
+      break;
+    }
+  }
+
   if (firstElement) {
     firstElement.classList.add('tflix-focused');
     firstElement.focus();
@@ -66,7 +72,7 @@ function initializeFocus() {
  */
 function ensureElementIsVisible(element) {
   if (!element) return;
-  
+
   element.scrollIntoView({
     behavior: 'smooth',
     block: 'nearest',
@@ -122,76 +128,76 @@ function setupMediaControlListeners() {
  */
 function handleBackButton(e) {
   e.preventDefault(); // Prevent default back behavior
-  
+
   // Special handling for Cineby.gd
-  if (window.location.hostname.includes('cineby.gd')) {
+  if (window.location.hostname.indexOf('cineby.gd') !== -1) {
     // Check if we're in a video player mode
-    if (videoElement && videoElement.parentElement && 
-        (document.fullscreenElement || 
+    if (videoElement && videoElement.parentElement &&
+        (document.fullscreenElement ||
          videoElement.closest('.video-player-container') ||
          videoElement.style.position === 'fixed' ||
          videoElement.parentElement.style.position === 'fixed')) {
-      
+
       // If in fullscreen, exit it
       if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {
+        document.exitFullscreen().catch(function() {
           // Silent error handling
         });
       }
-      
+
       // Stop video playback
       videoElement.pause();
-      
+
       // Try to find and click a close button
-      const closeButton = document.querySelector('.close-button, .back-button, .exit-button');
+      var closeButton = document.querySelector('.close-button, .back-button, .exit-button');
       if (closeButton) {
         closeButton.click();
       } else {
         // If we have stored the last movie URL, go back to it instead of general history
-        if (window.tflixLastMovieUrl && window.tflixLastMovieUrl.includes('/movie/')) {
+        if (window.tflixLastMovieUrl && window.tflixLastMovieUrl.indexOf('/movie/') !== -1) {
           window.location.href = window.tflixLastMovieUrl;
         } else {
           // Try to navigate back to the movie page through history
           window.history.back();
         }
       }
-      
+
       return;
     }
   }
-  
+
   // Default handling for other cases
-  if (videoElement && videoElement.parentElement && 
+  if (videoElement && videoElement.parentElement &&
       (document.fullscreenElement || videoElement.closest('.video-player-container'))) {
-    
+
     // If in fullscreen, exit it
     if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {
+      document.exitFullscreen().catch(function() {
         // Silent error handling
       });
     }
-    
+
     // Stop video playback
     videoElement.pause();
-    
+
     // If there's a close button, click it
-    const closeButton = document.querySelector('.close-button, .back-button, .exit-button');
+    var closeButton = document.querySelector('.close-button, .back-button, .exit-button');
     if (closeButton) {
       closeButton.click();
     } else {
       // Try to navigate back to the main content
       window.history.back();
     }
-    
+
     return;
   }
-  
+
   // Handle regular navigation back
   if (window.history.length > 1) {
     window.history.back();
   } else {
     // If no history, try to find a back button on the page
-    const backButton = document.querySelector('.back-button, [aria-label="Back"], [aria-label="Go back"]');
+    var backButton = document.querySelector('.back-button, [aria-label="Back"], [aria-label="Go back"]');
     if (backButton) {
       backButton.click();
     }
@@ -203,33 +209,39 @@ function handleBackButton(e) {
  */
 function setupVideoPlayerObserver() {
   // Create an observer instance
-  const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
+  var observer = new MutationObserver(function(mutations) {
+    for (var m = 0; m < mutations.length; m++) {
+      var mutation = mutations[m];
       if (mutation.addedNodes.length) {
         // Check if a video element was added
-        const addedVideo = Array.from(mutation.addedNodes).find(node => 
-          node.nodeName === 'VIDEO' || 
-          (node.querySelector && node.querySelector('video'))
-        );
-        
+        var addedVideo = null;
+        for (var i = 0; i < mutation.addedNodes.length; i++) {
+          var node = mutation.addedNodes[i];
+          if (node.nodeName === 'VIDEO' ||
+              (node.querySelector && node.querySelector('video'))) {
+            addedVideo = node;
+            break;
+          }
+        }
+
         if (addedVideo) {
-          videoElement = addedVideo.nodeName === 'VIDEO' ? 
+          videoElement = addedVideo.nodeName === 'VIDEO' ?
             addedVideo : addedVideo.querySelector('video');
-          
+
           if (videoElement) {
             enhanceVideoPlayer(videoElement);
           }
         }
       }
-    });
+    }
   });
-  
+
   // Start observing the document body for DOM changes
-  observer.observe(document.body, { 
-    childList: true, 
-    subtree: true 
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
   });
-  
+
   // Also check for existing video elements
   videoElement = document.querySelector('video');
   if (videoElement) {
@@ -258,10 +270,13 @@ function enhanceVideoPlayer(video) {
   
   // Add error handling
   videoElement.addEventListener('error', handleVideoError);
-  
+
   // Show controls when moving focus with the TV remote
   document.addEventListener('keydown', function(e) {
-    if (Object.values(ARROW_KEY_CODE).includes(e.key)) {
+    // Check if e.key is one of the arrow keys
+    var isArrowKey = (e.key === 'ArrowLeft' || e.key === 'ArrowUp' ||
+                      e.key === 'ArrowRight' || e.key === 'ArrowDown');
+    if (isArrowKey) {
       showControls();
     }
   });
@@ -338,11 +353,11 @@ function fixVideoPlaybackIssues(video) {
     
     // Add event listeners for TV remote navigation during playback
     document.addEventListener('keydown', handleCinebyVideoKeyEvents);
-    
+
     // Force a play attempt with retry logic for Cineby
-    let playAttempts = 0;
-    const tryPlayVideo = () => {
-      video.play().catch(() => {
+    var playAttempts = 0;
+    var tryPlayVideo = function() {
+      video.play().catch(function() {
         playAttempts++;
         if (playAttempts < 5) {
           // Try again with exponential backoff
@@ -353,7 +368,7 @@ function fixVideoPlaybackIssues(video) {
         }
       });
     };
-    
+
     // Start the first attempt after a delay
     setTimeout(tryPlayVideo, 1000);
   }
@@ -364,7 +379,7 @@ function fixVideoPlaybackIssues(video) {
  * @param {Event} e - Remote control event
  */
 function handleCinebyVideoKeyEvents(e) {
-  const video = window.tflixVideoElement;
+  var video = window.tflixVideoElement;
   if (!video) return;
   
   // Only process if we're on a video page and the video is visible
@@ -678,7 +693,7 @@ function showToast(message) {
 }
 
 // Define arrow key codes globally for TV remote
-const ARROW_KEY_CODE = {
+var ARROW_KEY_CODE = {
   'ArrowLeft': 'left',
   'ArrowUp': 'up',
   'ArrowRight': 'right',
@@ -686,7 +701,7 @@ const ARROW_KEY_CODE = {
 };
 
 // Initialize UI when the page is loaded
-const interval = setInterval(() => {
+var interval = setInterval(function() {
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     try {
       initializeUI();

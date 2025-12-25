@@ -1,3 +1,5 @@
+// Import polyfills first (must be loaded before any other code)
+import './polyfills.js';
 import 'whatwg-fetch';
 import './spatial-navigation-polyfill.js';
 import './ui.js';

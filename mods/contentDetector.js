@@ -7,86 +7,118 @@
  * Detect and enhance content cards/items
  */
 function enhanceContentItems() {
-  const selectors = [
+  var selectors = [
     // Common movie/show card selectors - update these after inspecting the actual site
-    '.movie-card', 
-    '.content-item', 
+    '.movie-card',
+    '.content-item',
     '.film-item',
     '.show-card',
     // Typical class names for grid items
-    '.grid-item', 
+    '.grid-item',
     '.card',
     // Image containers
     '.poster-container',
-    '.thumbnail',
-    // Any anchors with images (likely to be content items)
-    'a:has(img)'
+    '.thumbnail'
+    // Note: Removed 'a:has(img)' as :has() is not supported in older browsers
+    // We'll handle anchors with images separately below
   ];
-  
+
   // Find all content items using the selectors
-  const allSelectors = selectors.join(', ');
-  const contentItems = document.querySelectorAll(allSelectors);
-  
+  var allSelectors = selectors.join(', ');
+  var contentItems = document.querySelectorAll(allSelectors);
+
+  // Also find anchors with images separately (without using :has())
+  var allAnchors = document.querySelectorAll('a');
+  var anchorsWithImages = [];
+  for (var i = 0; i < allAnchors.length; i++) {
+    var anchor = allAnchors[i];
+    if (anchor.querySelector('img')) {
+      anchorsWithImages.push(anchor);
+    }
+  }
+
+  // Merge the results
+  var allContentItems = [];
+  for (var j = 0; j < contentItems.length; j++) {
+    allContentItems.push(contentItems[j]);
+  }
+  for (var k = 0; k < anchorsWithImages.length; k++) {
+    var alreadyExists = false;
+    for (var l = 0; l < allContentItems.length; l++) {
+      if (allContentItems[l] === anchorsWithImages[k]) {
+        alreadyExists = true;
+        break;
+      }
+    }
+    if (!alreadyExists) {
+      allContentItems.push(anchorsWithImages[k]);
+    }
+  }
+
   // Make each item focusable and add navigation attributes
-  contentItems.forEach((item, index) => {
+  for (var m = 0; m < allContentItems.length; m++) {
+    var item = allContentItems[m];
+
     // Ensure the item is focusable
     if (!item.getAttribute('tabindex')) {
       item.setAttribute('tabindex', '0');
     }
-    
+
     // Add data attribute for easier selection
-    item.setAttribute('data-tflix-item', index);
-    
+    item.setAttribute('data-tflix-item', m);
+
     // Special handling for Cineby.gd
-    if (window.location.hostname.includes('cineby.gd')) {
-      const anchor = item.tagName === 'A' ? item : item.querySelector('a');
-      if (anchor && anchor.href && anchor.href.includes('/movie/')) {
+    if (window.location.hostname.indexOf('cineby.gd') !== -1) {
+      var anchor = item.tagName === 'A' ? item : item.querySelector('a');
+      if (anchor && anchor.href && anchor.href.indexOf('/movie/') !== -1) {
         // Add a special click handler for Cineby movie links
-        item.addEventListener('click', (e) => {
-          // Make sure the link loads correctly without going to a black screen
-          e.preventDefault();
-          
-          // Show loading toast
-          showVideoInfoToast('Loading movie info...');
-          
-          // Navigate to the movie page
-          window.location.href = anchor.href;
-        });
+        item.addEventListener('click', function(anchor) {
+          return function(e) {
+            // Make sure the link loads correctly without going to a black screen
+            e.preventDefault();
+
+            // Show loading toast
+            showVideoInfoToast('Loading movie info...');
+
+            // Navigate to the movie page
+            window.location.href = anchor.href;
+          };
+        }(anchor));
       } else if (item.tagName !== 'A' && !item.onclick) {
         // Standard handling for non-anchor items
-        item.addEventListener('click', () => {
+        item.addEventListener('click', function() {
           // If there's an anchor inside, click it
-          const anchor = item.querySelector('a');
-          if (anchor) {
-            anchor.click();
+          var innerAnchor = item.querySelector('a');
+          if (innerAnchor) {
+            innerAnchor.click();
           }
         });
       }
     } else {
       // Standard handling for non-Cineby sites
       if (item.tagName !== 'A' && !item.onclick) {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', function() {
           // If there's an anchor inside, click it
-          const anchor = item.querySelector('a');
-          if (anchor) {
-            anchor.click();
+          var innerAnchor = item.querySelector('a');
+          if (innerAnchor) {
+            innerAnchor.click();
           }
         });
       }
     }
-    
+
     // Add focus and blur event listeners
-    item.addEventListener('focus', () => {
-      item.classList.add('tflix-focused');
+    item.addEventListener('focus', function() {
+      this.classList.add('tflix-focused');
     });
-    
-    item.addEventListener('blur', () => {
-      item.classList.remove('tflix-focused');
+
+    item.addEventListener('blur', function() {
+      this.classList.remove('tflix-focused');
     });
-  });
-  
+  }
+
   // For Cineby.gd, detect and enhance play buttons specifically
-  if (window.location.hostname.includes('cineby.gd')) {
+  if (window.location.hostname.indexOf('cineby.gd') !== -1) {
     enhanceCinebyPlayButtons();
   }
 }
